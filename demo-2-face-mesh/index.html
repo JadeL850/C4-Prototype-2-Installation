@@ -1,28 +1,9 @@
 <!--
-  ============================================================================
-  File:    index.html
-  Project: MediaPipe Demos — MDes Prototyping, CCA
-  Demo:    2 — Face Mesh (eye-tracking installation)
+  index.html — eye-tracking installation (C4 Prototype 2)
+  Based on MediaPipe Demos (Thomas J McLeish, MDes Prototyping, CCA). MIT License.
 
-  Authors: Copilot
-           Thomas J McLeish
-  License: MIT — see LICENSE in the root of this repository
-  ============================================================================
-
-  PURPOSE
-  Full-screen projection for an exhibition installation. An article about
-  surveillance scrolls slowly up the screen; visitors' eyes are tracked by
-  the webcam and drawn over the text, sized by how close each person stands.
-
-  LAYERS (back to front)
-    #articleStage  — the scrolling article (edit it in <article> below)
-    #canvas        — transparent overlay where sketch.js draws the eyes
-    #cameraSelectWrapper — camera picker, hidden until hovered
-
-  HOW TO USE
-  Serve over localhost or HTTPS, open in Chrome or Edge, allow the camera,
-  then press F for fullscreen. Any other key clears the eye trails.
-  ============================================================================
+  Layers, back to front: the scrolling article (edit <article> below), the
+  eye canvas drawn by sketch.js, and a camera picker shown on hover.
 -->
 <!DOCTYPE html>
 <html lang="en">

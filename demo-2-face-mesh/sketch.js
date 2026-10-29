@@ -1,89 +1,15 @@
 // =============================================================================
-// File:    sketch.js
-// Project: MediaPipe Demos — MDes Prototyping, CCA
-// Demo:    2 — Face Mesh (eye-tracking installation)
+// sketch.js — eye-tracking installation (C4 Prototype 2)
+// Based on MediaPipe Demos (Thomas J McLeish, MDes Prototyping, CCA).
+// License: MIT — see LICENSE in the root of this repository.
 //
-// Authors: Copilot
-//          Thomas J McLeish
-// License: MIT — see LICENSE in the root of this repository
+// Tracks every visitor's eyes and irises with MediaPipe Face Landmarker and
+// draws them over the scrolling article in index.html: placed where each
+// person stands and looks, sized by distance, one colour palette per person.
+//
+// Keys: F = fullscreen, any other key = clear trails. Click = save PNG.
+// Add ?debug=1 to the URL for a face counter and gaze guides.
 // =============================================================================
-//
-// PURPOSE
-// -------
-// This sketch demonstrates how to use MediaPipe FaceMesh to detect and track
-// the eyes and irises in real time using your webcam. When a face is
-// detected, the model returns 478 landmark points covering the full face;
-// this sketch uses only the eye and iris points.
-//
-// Built for an exhibition projection: an article about surveillance scrolls
-// slowly up the screen (see index.html), and every visitor's eyes are drawn
-// over the text as eye and iris landmark dots.
-//
-//   Position — each pair of eyes starts where that person stands in the
-//              camera's view (mirrored, spread across the projection), then
-//              shifts towards where they are looking. Gaze is estimated from
-//              head direction plus where each iris sits within the eye — see
-//              estimateGaze.
-//   Size     — each pair of eyes is magnified around its own centre in
-//              proportion to how large the face is in the camera, so people
-//              standing closer get bigger eyes. Nearer faces draw on top.
-//
-// The eye canvas is not wiped between frames, so moving eyes leave a short,
-// fading trail (adapted from a p5.js + clmtrackr eye-trail sketch). The
-// webcam feed is used for tracking but is never shown.
-//
-// KEYS: F toggles fullscreen; any other key clears the trails.
-// Clicking saves the eye layer (on black, without the text) as a PNG.
-//
-// WHAT IS MediaPipe FACE LANDMARKER?
-// ------------------------------------
-// MediaPipe Face Landmarker (part of the Tasks Vision API) is a
-// machine-learning model from Google that analyses each video frame and
-// returns the 3-D positions of 478 key points on any detected face (468 face
-// surface points + 10 iris points). The model runs entirely in the browser —
-// no data leaves your device.
-//
-// Each landmark has x, y, and z properties:
-//   x, y — normalised position (0.0–1.0 relative to frame width/height)
-//   z     — depth estimate (smaller = closer to camera)
-//
-// See drawFrame for how these are turned into positions and sizes on the
-// projection.
-//
-// MULTIPLE FACES
-// --------------
-// Up to MAX_FACES faces are tracked at once; each detected face gets its
-// own set of eye and iris dots.
-//
-// FACE REGIONS
-// ------------
-// This demo draws only the eye-tracking regions: the eye outlines and the
-// irises. Each person gets their own colour palette (see PALETTES), so
-// visitors can tell which eyes are theirs.
-//
-// The region index arrays below come from the MediaPipe Face Landmarker
-// canonical face model documentation.
-//
-// HOW THE TASKS API DIFFERS FROM THE LEGACY SOLUTIONS API
-// --------------------------------------------------------
-// This demo uses @mediapipe/tasks-vision instead of the deprecated
-// @mediapipe/face_mesh package. Key differences:
-//
-//   Legacy pattern                Tasks API pattern
-//   ─────────────────────────     ──────────────────────────────────────
-//   new FaceMesh({ locateFile })  FaceLandmarker.createFromOptions(...)
-//   faceMesh.setOptions(...)      options passed to createFromOptions
-//   faceMesh.onResults(callback)  result returned by detectForVideo(...)
-//   await faceMesh.send(...)      result = landmarker.detectForVideo(video, ts)
-//   results.multiFaceLandmarks    result.faceLandmarks
-//
-// Iris landmarks (indices 468–477) are included automatically in the
-// Face Landmarker model — no refineLandmarks option is needed.
-//
-// DEBUGGING
-// ---------
-// Set debugMode = true to log landmark counts and model events to the
-// browser console. Open DevTools (F12) → Console tab to see the output.
 
 // =============================================================================
 // CONSTANTS
