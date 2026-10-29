@@ -1,598 +1,199 @@
-# MediaPipe Demos
+# MediaPipe Eye Tracking
 
-**MediaPipe Demos** is a project in the MDes Prototyping course at CCA. It focuses on real-time computer vision in the browser using [MediaPipe](https://google.github.io/mediapipe/) — Google's framework for applying machine-learning models to live webcam feeds.
+A projection piece for an exhibition installation about surveillance. Visitors walk into a dark room where an article scrolls slowly up a large projection. As they read, a camera tracks their eyes and draws them over the text, so every reader sees themselves being watched. It runs entirely in the browser using [MediaPipe](https://ai.google.dev/edge/mediapipe/solutions/guide) Face Landmarker, adapted from the MediaPipe Demos project in the MDes Prototyping course at CCA.
 
-The hands-on thread running through the whole project is a progressive series of webcam demos:
-
-1. **Hand tracking** — detect and visualise the 21 joints of one or two hands
-2. **Face mesh** — map 468 facial landmarks with region-specific colouring
-3. **Hands and face combined** — run both models together in a split-screen view
-4. **Interaction basics** — turn landmark coordinates into interactive inputs: distance, zones, counts, and mapped values
-5. **Face instrument** — use your face as a proximity-triggered control surface with nine named regions
-
-> **🖼️ Gallery:** Browse and launch every demo in the project from the [Code Example Gallery](https://tj60647.github.io/mediapipe-demos/gallery/). *(Also works locally — serve this repo and open `http://localhost:<port>/gallery/`.)*
-
-> **🌐 Beyond Face and Hands:** A comparative overview of five additional MediaPipe tasks — object detection, gesture recognition, pose tracking, image classification, and audio classification — with project prompts and Studio links. Open [`beyond/index.html`](https://tj60647.github.io/mediapipe-demos/beyond/) in your browser.
-
----
-
-## Getting Started (Pick Your Path)
-
-**No setup required — start immediately.**
-
-### Path 1: Online Gallery (Recommended for First Time)
-
-Open the [Code Example Gallery](https://tj60647.github.io/mediapipe-demos/gallery/) in your browser. All demos run live without any local setup.
-
-### Path 2: OpenProcessing (Best for Remixing)
-
-1. Open [OpenProcessing](https://openprocessing.org/) in a new tab.
-2. Create a new sketch.
-3. Pick a demo (e.g., demo-1-hand-tracking). Copy the HTML from its `index.html` and paste it into the OpenProcessing sketch editor.
-4. Copy the JavaScript from the same demo's `sketch.js` and paste it into the JavaScript panel.
-5. Run the sketch — webcam access works in OpenProcessing HTTPS.
-
-> **Example:** [Demo 1 Hand Tracking on OpenProcessing](https://openprocessing.org/sketch/2914727) — this is what a finished sketch looks like.
-
-### Path 3: Local Server (Optional for Development)
-
-Use a local server if you want to edit the demos offline or test changes before pushing to OpenProcessing.
-
-1. Open a terminal in the repository root.
-2. Start a local server:
-    ```powershell
-    python -m http.server 5500
-    ```
-3. Open one of these URLs:
-    - `http://localhost:5500/gallery/` (start here)
-    - `http://localhost:5500/demo-1-hand-tracking/`
-    - `http://localhost:5500/demo-2-face-mesh/`
-    - `http://localhost:5500/demo-3-hands-and-face/`
-    - `http://localhost:5500/demo-4-interaction/`
-    - `http://localhost:5500/demo-5-face-instrument/`
-
-If `python` is unavailable, try:
-
-```powershell
-py -m http.server 5500
+```
+webcam → Face Landmarker → eye + iris landmarks → placed + scaled per person → drawn over the scrolling article
 ```
 
-### Path 4: HTTPS Phone Testing (Recommended for Mobile Camera Debugging)
+**What you see:**
+- The article “Flock Cameras Can Track Every Car in America. Police Love Them. Citizens Don’t.” (The New York Times, Aug. 10, 2026), laid out in the newspaper’s format and scrolling slowly upwards on a seamless loop, fading out at the top and bottom edges
+- Every visitor's eyes drawn over the text in their own colour palette, so people can tell which eyes are theirs
+- Each pair of eyes placed where that person stands (mirrored, and spread across the whole projection), then shifted towards where they are looking
+- Each pair of eyes and irises sized by distance — people standing closer get bigger eyes, and nearer faces draw on top
+- A short fading trail as the eyes move (about 1.5 seconds), stamped 10 times per second
+- Up to 10 faces (20 eyes) tracked at once
+- The webcam feed itself is never shown
 
-Mobile browsers usually block webcam access on plain `http://192.168.x.x` URLs. The quickest reliable workaround is to run the repo locally and expose it through an HTTPS tunnel.
-
-1. Install the small dev tools once:
-    ```powershell
-    npm install
-    ```
-2. Start the local server only:
-    ```powershell
-    npm run dev
-    ```
-3. Or start the local server and an HTTPS tunnel together:
-    ```powershell
-    npm run dev:https
-    ```
-4. In the terminal output, open the `https://*.loca.lt` URL on your phone.
-5. For debugging, add `?debug=1` to the demo URL, for example:
-    ```text
-    https://your-url.loca.lt/demo-1-hand-tracking/?debug=1
-    ```
-
-Why this path exists: the tunnel gives your phone a real HTTPS origin, which satisfies the browser security requirement for `getUserMedia()` camera access.
+📂 **Sketch:** [`demo-2-face-mesh/sketch.js`](demo-2-face-mesh/sketch.js)
 
 ---
 
-## The Tools We Use
+## Running the Demo
 
-This project links two main pieces:
+Webcam access requires the page to be served over HTTPS or from `localhost` — opening `index.html` directly as a `file://` URL will not work.
 
-1. **MediaPipe** — Google's real-time machine-learning pipeline that runs entirely in the browser. No data ever leaves your device. Models are loaded from a CDN.
-2. **Plain JavaScript + Canvas** — each demo uses vanilla JS and the native HTML `<canvas>` API to draw landmark dots and skeleton lines over a live webcam feed.
+### Option 1: VS Code Live Server
 
-### MediaPipe
+Click **Go Live** in the VS Code status bar. Live Server opens the repo root on port 5501, and the root `index.html` forwards to the demo.
 
-[MediaPipe](https://ai.google.dev/edge/mediapipe/solutions/guide) provides pre-trained models for common computer-vision tasks via the **Tasks Vision API** (`@mediapipe/tasks-vision`). In this project we use two tasks:
+### Option 2: Vite dev server
 
-| Task | What it detects | Landmarks |
-|---|---|---|
-| **Hand Landmarker** | Up to two hands | 21 points per hand (wrist, knuckles, fingertips) |
-| **Face Landmarker** | Up to 1 face (configurable) | 478 points covering the full face surface (468 face + 10 iris) |
+```sh
+npm install
+npm run dev
+```
 
-Each landmark has normalised `x`, `y`, and `z` coordinates (0.0–1.0 relative to the frame). To draw on a canvas, multiply `x` by the canvas width and `y` by the canvas height.
+Vite opens `http://localhost:5500/` and the root page forwards to the demo.
 
-> **⚠️ Legacy API note:** Many tutorials found online still use the deprecated `@mediapipe/hands` and `@mediapipe/face_mesh` packages (the "Solutions API"). Those packages are frozen — they no longer receive updates from Google. The demos in this project have been updated to the current `@mediapipe/tasks-vision` package. The landmark shape (`{x, y, z}`) is identical between the two APIs, so interaction and drawing code is unchanged; only the initialisation pattern differs.
+### Option 3: Any static server
 
-### OpenProcessing
+From the repository root:
 
-[OpenProcessing](https://openprocessing.org) is an online platform for running and sharing browser sketches. Every `sketch.js` in this project can be pasted directly into a new OpenProcessing sketch and run there without any local setup.
+```sh
+python3 -m http.server 5500
+```
 
-> **Note:** Paste the contents of any `sketch.js` into a new OpenProcessing sketch to run it there. If you prefer to work locally, serve this repo on `localhost` and open the matching demo URL in your browser.
+Then open `http://localhost:5500/demo-2-face-mesh/`.
+
+### Option 4: HTTPS on a phone
+
+Mobile browsers block webcam access on plain `http://192.168.x.x` URLs. To test on a phone, run the local server with an HTTPS tunnel:
+
+```sh
+npm install
+npm run dev:https
+```
+
+Open the `https://*.loca.lt` URL from the terminal output on your phone.
+
+### Option 5: OpenProcessing
+
+1. Create a new sketch on [OpenProcessing](https://openprocessing.org/).
+2. Paste the HTML from [`demo-2-face-mesh/index.html`](demo-2-face-mesh/index.html) and the JavaScript from [`demo-2-face-mesh/sketch.js`](demo-2-face-mesh/sketch.js).
+3. Run the sketch and allow webcam access.
 
 ---
 
-## Where This Fits in the Course
+## Controls and Settings
 
-| Project | Focus |
+**Controls:**
+- **F** — toggle fullscreen (use this on the projector)
+- Any other key — clear the eye trails
+- Click — save the eye layer as a PNG on black (`eyeTrail-YYYYMMDD-HHMMSS.png`); the article text is not included
+- Hover the top-right corner — reveals the camera picker (only when more than one camera is connected)
+
+**The article:** edit the `<article>` in [`demo-2-face-mesh/index.html`](demo-2-face-mesh/index.html). Text size and colour are in the `.article` styles in the same file.
+
+**Settings at the top of `sketch.js`:**
+
+| Setting | What it does |
 |---|---|
-| ← **Smart Object Foundations** | WebSerial, p5.js, signal processing |
-| → **MediaPipe Demos** _(you are here)_ | Real-time computer vision, webcam, landmark tracking |
+| `SCROLL_SPEED` | Article scroll speed in pixels per second (default 25) |
+| `EYE_SIZE` | Eye size for someone at laptop-webcam distance, as a fraction of screen width (default 0.15) |
+| `SIZE_CONTRAST` | How sharply eyes shrink with distance: 1 = in proportion, 2.5 (default) = twice as far gives about a fifth of the size |
+| `REFERENCE_GAP`, `MAX_EYE_SIZE` | The distance `EYE_SIZE` applies to, and a size cap for someone leaning into the camera |
+| `DOT_SIZE`, `MIN_DOT_RADIUS` | Dot size relative to the eyes, and the smallest allowed dot |
+| `TRACKING_AREA` | The part of the camera image spread across the projection. Narrow `top`/`bottom` so eyes travel further up and down the screen |
+| `DRAW_FPS` | How often eyes are stamped (default 10) |
+| `TRAIL_FADE` | Trail length: higher = shorter; 0 = never fades, 1 = no trail |
+| `MIRROR` | Mirror the view so moving left moves the eyes left |
+| `MAX_FACES` | Maximum faces tracked at once (default 10) |
+| `IRIS_AMPLIFY` | How much the drawn iris movement inside each eye is exaggerated (default 3; 1 = as tracked) |
+| `IRIS_AMPLIFY_MAX`, `IRIS_TYPICAL_MOVE` | People whose irises move less than typical (e.g. smaller eyes) are boosted automatically, up to this cap (default 4) |
+| `BACKGROUND_ALPHA` | Opacity of eyes for people well behind the nearest person (default 0.45) |
+| `FOREGROUND_RATIO`, `BACKGROUND_RATIO` | Eye size relative to the nearest person at which eyes start fading, and are fully faded |
+| `IRIS_MAX_X`, `IRIS_MAX_Y` | How far the iris may be pushed from the eye centre, so it stays inside the eye |
+| `IRIS_SMOOTH_MS` | Smoothing on the exaggerated iris movement; lower = snappier, higher = calmer |
+| `PALETTES` | The per-person colour palettes (see below) |
+| `GAZE_REACH` | How far looking left/right moves the eyes, in screen widths (default 1.2) |
+| `GAZE_REACH_Y` | How far looking up/down moves the eyes, in screen heights (default 1.0) |
+| `VERTICAL_RECENTER_MS` | Each person's "straight ahead" height is learned separately over about this long, cancelling their own posture bias (default 8000; 0 = off) |
+| `STANDING_Y_WEIGHT` | How much head height in the camera moves eyes up/down (default 0.3), so taller or standing people don't start at the top edge |
+| `EYE_GAZE_WEIGHT` | How much glancing with the eyes alone (no head turn) counts; 0 = head direction only |
+| `IRIS_TRAVEL` | How far the iris moves within the eye at a full glance (fraction of eye width) |
+| `GAZE_OFFSET` | Shifts everyone's gaze, to correct for camera placement so looking straight ahead leaves the eyes where the person stands |
+| `GAZE_STEADY_MS`, `GAZE_FAST_MS` | Adaptive smoothing: catch-up time while holding still (higher = steadier) and for a deliberate head turn (lower = snappier) |
+| `MIN_*_CONFIDENCE` | Detection thresholds; lower finds more faces, higher avoids false detections |
+
+**Colour palettes:** each person gets a palette, kept for as long as they're tracked. The colours are the ones surveillance and tracking systems use to mark individual subjects: NATO military symbology's affiliation colours (blue friendly, red hostile, green neutral, yellow unknown), plus the alert colours of person-tracking software (magenta flagged, orange person of interest, violet identified). Each iris uses a contrasting colour from the same set. People in view never share a palette until there are more than seven people.
+
+| Palette | Eye outline | Iris |
+|---|---|---|
+| FRIENDLY | blue `#4cc9ff` | red `#ff3b4e` |
+| HOSTILE | red `#ff3b4e` | yellow `#ffe14d` |
+| NEUTRAL | green `#3dff7a` | magenta `#ff3df2` |
+| UNKNOWN | yellow `#ffe14d` | blue `#4cc9ff` |
+| FLAGGED | magenta `#ff3df2` | green `#3dff7a` |
+| PERSON OF INTEREST | orange `#ff8a1f` | blue `#4cc9ff` |
+| IDENTIFIED | violet `#a97bff` | yellow `#ffe14d` |
+
+**Tuning gaze on site:** open the page with `?debug=1`. Each person gets a small ring where they stand and a line to where their eyes are drawn, and the bottom-left readout shows every person's gaze numbers. Have someone stand still and look straight ahead: if the line doesn't stay short, adjust `GAZE_OFFSET` (for example, a camera mounted above the projection makes everyone appear to look down, so use a negative `y`). Then have them look at the screen's edges and adjust `GAZE_REACH` until the eyes land roughly where they look.
+
+**Installation tips:**
+- Mount the camera at eye height near the projection, facing the readers. The face model works best within about 2 metres.
+- Light the visitors' faces softly (for example from the projection itself or a dim front light). A completely dark room hides faces from the camera.
+- Run Chrome in kiosk mode (`--kiosk`) or press **F** for fullscreen.
 
 ---
 
-## What You Will Build
+## How It Works
 
-A series of real-time browser demos that process your webcam feed with MediaPipe machine-learning models:
+The Face Landmarker model (from `@mediapipe/tasks-vision`) returns 478 landmarks for each detected face: 468 face-surface points plus 10 iris points. The model always returns the full set; the sketch draws only the eye and iris points and skips the rest.
 
-```
-webcam → video element → MediaPipe model(s) → landmark results → canvas drawing
+Each landmark has normalised `x`, `y`, and `z` coordinates (0.0–1.0 relative to the frame). To draw on a canvas, convert to pixels:
+
+```js
+const pixelX = landmark.x * canvas.width;
+const pixelY = landmark.y * canvas.height;
 ```
 
-Each demo builds on the last:
+The eye and iris points are picked out by index:
 
+```js
+const EYE_INDICES  = new Set([33, 7, 163, ...]);   // eye outlines
+const IRIS_INDICES = new Set([468, 469, ..., 477]); // irises
+
+if      (IRIS_INDICES.has(index)) { /* draw in pink-red */ }
+else if (EYE_INDICES.has(index))  { /* draw in light blue */ }
 ```
-Demo 1 — hand landmarks only
-    ↓ add face mesh
-Demo 2 — face landmarks only
-    ↓ combine both
-Demo 3 — hands + face, side-by-side split view
-    ↓ add interaction logic
-Demo 4 — interaction basics: distance, zones, counts, mapping
-    ↓ face as control surface
-Demo 5 — face instrument: proximity triggers across face regions
-```
+
+| Indices | Region |
+|---|---|
+| 468–472 | Right iris (468 is the centre) |
+| 473–477 | Left iris (473 is the centre) |
+| 33, 133, 7, 163, 144, 145, 153, 154, 155, 173, 157, 158, 159, 160, 161, 246 | Right eye outline |
+| 263, 362, 382, 381, 380, 374, 373, 390, 249, 466, 388, 387, 386, 385, 384, 398 | Left eye outline |
+
+"Right" and "left" are from the subject's point of view, so the right eye appears on the left of an unmirrored webcam image.
+
+The sketch runs two loops: `frameLoop` calls `faceLandmarker.detectForVideo()` on each frame, and `renderLoop` redraws the canvas at display refresh rate using the latest results.
+
+> **Tip:** The iris centre (468 or 473) relative to the eye corners (33/133 or 362/263) tells you where someone is looking horizontally. The distance between the upper and lower eyelid points (159/145 or 386/374) tells you whether the eye is open or closed.
 
 ---
 
 ## Folder Structure
 
-Each demo has a self-contained folder with an `index.html` page and a `sketch.js` file containing all the JavaScript logic.
-
 ```
-gallery/
-└── index.html                         ← launch pad — links to all demos
-
-demo-1-hand-tracking/
-├── index.html                         ← open via localhost in any modern browser
-└── sketch.js                          ← paste into OpenProcessing
-
+index.html          ← root page; forwards to the demo
 demo-2-face-mesh/
-├── index.html
-└── sketch.js
-
-demo-3-hands-and-face/
-├── index.html
-└── sketch.js
-
-demo-4-interaction/
-├── index.html
-└── sketch.js
-
-demo-5-face-instrument/
-├── index.html
-└── sketch.js
-
-resources/
-└── index.html                         ← exploration sources and links
-
-beyond/
-└── index.html                         ← beyond face and hands — five additional tasks
+├── index.html      ← page: the article, eye canvas, camera selector
+└── sketch.js       ← all demo logic
+package.json        ← Vite dev scripts
+vite.config.js      ← dev server config
 ```
-
----
-
-## Demo 1 — Hand Tracking
-
-Detect up to two hands in your webcam feed and draw the 21 landmark points per hand along with the full hand skeleton.
-
-**What you see:**
-- Green dots at each of the 21 hand joints (wrist, knuckles, fingertips)
-- Green lines connecting adjacent joints to form the hand skeleton
-- A count of hands currently detected in the corner
-
-📂 **Sketch:** [`demo-1-hand-tracking/sketch.js`](demo-1-hand-tracking/sketch.js)
-
-🌐 **Live demo:** [Open on GitHub Pages](https://tj60647.github.io/mediapipe-demos/demo-1-hand-tracking/)
-
-🌐 **OpenProcessing:** [Try it live](https://openprocessing.org/sketch/2914727)
-
-> **📐 Concept Sidebar: Normalised Coordinates**
->
-> MediaPipe returns landmark positions as normalised values in the range 0.0–1.0, not as pixel coordinates. A landmark with `x = 0.5, y = 0.5` is exactly in the centre of the frame, regardless of the actual camera resolution.
->
-> To draw on a canvas, convert to pixels:
-> ```js
-> const pixelX = landmark.x * canvas.width;
-> const pixelY = landmark.y * canvas.height;
-> ```
-> This makes your code resolution-independent — the same sketch works whether your webcam is 640×480 or 1920×1080.
-
-> **📐 Concept Sidebar: The 21 Hand Landmarks**
->
-> MediaPipe Hands numbers each landmark 0–20:
->
-> | Index | Location |
-> |---|---|
-> | 0 | Wrist |
-> | 1–4 | Thumb (base → tip) |
-> | 5–8 | Index finger (base → tip) |
-> | 9–12 | Middle finger |
-> | 13–16 | Ring finger |
-> | 17–20 | Pinky finger |
->
-> The `z` component is a depth estimate — smaller (more negative) values mean the point is closer to the camera. Depth can be used to detect when a finger is pressing forward or pulling back.
-
-**Deliverable:** A live canvas showing your hand(s) with green skeleton dots and lines that follow your movements in real time.
-
----
-
-## Demo 2 — Face Mesh
-
-Map 468 facial landmarks onto a detected face, with distinct colours for the eyes, eyebrows, nose, lips, and irises.
-
-**What you see:**
-- 468–478 coloured dots spread across the full face surface (468 base landmarks + 10 iris points, included automatically by the Face Landmarker model)
-- Region-specific colouring (blue = eyes, yellow = eyebrows, red = lips, purple = nose, cyan = irises)
-- A count of faces currently detected in the corner
-
-📂 **Sketch:** [`demo-2-face-mesh/sketch.js`](demo-2-face-mesh/sketch.js)
-
-🌐 **Live demo:** [Open on GitHub Pages](https://tj60647.github.io/mediapipe-demos/demo-2-face-mesh/)
-
-> **📐 Concept Sidebar: Landmark Indices and Sub-regions**
->
-> The 478 face landmarks are numbered 0–467 for the face surface, plus indices 468–477 for iris points (included automatically by the Face Landmarker). MediaPipe's canonical face model diagram shows which index maps to which facial feature.
->
-> You can isolate any region by checking whether an index belongs to a predefined `Set`:
-> ```js
-> const EYE_INDICES = new Set([33, 7, 163, ...]);
-> if (EYE_INDICES.has(index)) { /* draw in blue */ }
-> ```
-
-**Deliverable:** A live canvas showing your face covered in coloured dots that track your movements and expressions.
-
----
-
-## Demo 3 — Hands and Face Combined
-
-Run both models on the same webcam stream in a split-screen canvas (raw feed on the left, overlay on the right).
-
-**What you see:**
-- **Left half** — the raw webcam feed with no overlay
-- **Right half** — the same frame with green hand landmarks and red face landmarks drawn on top
-- Counts for both hands and faces in the corner
-
-📂 **Sketch:** [`demo-3-hands-and-face/sketch.js`](demo-3-hands-and-face/sketch.js)
-
-🌐 **Live demo:** [Open on GitHub Pages](https://tj60647.github.io/mediapipe-demos/demo-3-hands-and-face/)
-
-> **📐 Concept Sidebar: Running Two Models Per Frame**
->
-> This demo uses two loops:
-> - **Inference loop** (`frameLoop`) calls both landmarkers synchronously on each frame using `detectForVideo`.
-> - **Render loop** (`renderLoop`) redraws at display refresh rate using the latest stored results.
->
-> ```js
-> const handResult = handLandmarker.detectForVideo(video, performance.now());
-> const faceResult = faceLandmarker.detectForVideo(video, performance.now());
-> ```
->
-> Both calls are synchronous — no callbacks or `await` needed.
-
-> **🖐️ Hand Count Control (Demo 3)**
->
-> Demo 3 includes a **Hands** selector (1 or 2) above the canvas. This updates `maxNumHands` live so you can trade off robustness vs. multi-hand interaction without reloading.
-
-> **📐 Concept Sidebar: Side-by-Side Canvas Layout**
->
-> The canvas is created at twice the video width (`video.videoWidth * 2`) so both halves fit side by side:
->
-> ```
-> ┌──────────────────┬──────────────────┐
-> │   x: 0 → width  │  x: width → 2×w  │
-> │   (raw feed)     │  (landmark view) │
-> └──────────────────┴──────────────────┘
-> ```
->
-> Landmark coordinates are offset into the right half by adding `video.videoWidth` to every `x` value:
-> ```js
-> ctx.arc(video.videoWidth + point.x * video.videoWidth, point.y * video.videoHeight, ...)
-> ```
-
-**Deliverable:** A live split-screen canvas showing the raw feed next to the landmark overlay for both hands and face simultaneously.
-
----
-
-## Demo 4 — Interaction Basics
-
-Turn landmark coordinates into interactive inputs. This demo shows four patterns, all driven by the same webcam data used for drawing in Demos 1–3.
-
-**What you see:**
-- Zone overlay: three highlighted columns (LEFT / CENTRE / RIGHT) showing which zone the index fingertip is in
-- Proximity line: a dashed coloured line connecting the index fingertip to the nose tip, labelled with the pixel distance
-- Colour-coded hand dots: hue shifts from red (0 fingers raised) to green (4 fingers raised)
-- Distance bar: right-edge vertical bar showing nose-to-finger distance
-- Height strip: left-edge gradient strip with a marker showing the current fingertip height mapped to a hue
-
-📂 **Sketch:** [`demo-4-interaction/sketch.js`](demo-4-interaction/sketch.js)
-
-🌐 **Live demo:** [Open on GitHub Pages](https://tj60647.github.io/mediapipe-demos/demo-4-interaction/)
-
-> **📐 Concept Sidebar: Four Interaction Patterns**
->
-> | Pattern | Input | Output |
-> |---|---|---|
-> | Distance | Two landmark positions | A pixel value (continuous) |
-> | Zone | One normalised x coordinate | LEFT / CENTRE / RIGHT (discrete) |
-> | Count | Four tip-vs-PIP comparisons | Integer 0–4 (discrete) |
-> | Mapping | One normalised y coordinate | A hue value 0–200 (continuous) |
->
-> All four patterns convert raw coordinate data into something that can drive a visual, audio, or behavioural response. The key insight: any landmark value can be an input, not just a drawing position.
-
-> **📐 Concept Sidebar: Proximity (Distance)**
->
-> Euclidean distance between two landmarks in pixels:
-> ```js
-> const dx = (a.x - b.x) * canvasWidth;
-> const dy = (a.y - b.y) * canvasHeight;
-> const dist = Math.sqrt(dx * dx + dy * dy);
-> ```
-> Use `dist` to trigger effects (is the hand close enough?), map to a range (how close is it?), or smooth over time (is it getting closer or further away?).
-
-**Deliverable:** A live canvas with all four interaction patterns running simultaneously, with labelled HUD values showing their current state.
-
----
-
-## Demo 5 — Face Instrument
-
-Turn the face into a proximity-triggered control surface. Nine named regions — forehead, eyebrows, eyes, nose, lips, and cheeks — each activate when the index fingertip comes within range.
-
-**What you see:**
-- Subtle face mesh dots showing all 468 landmarks
-- Dim rings at each of the nine face regions (inactive)
-- Bright glowing rings + filled centre when a region is active
-- Expanding ripple animation each time a region is newly activated
-- A legend panel listing all regions with their current activation state
-- The index fingertip highlighted as a larger ring
-
-📂 **Sketch:** [`demo-5-face-instrument/sketch.js`](demo-5-face-instrument/sketch.js)
-
-🌐 **Live demo:** [Open on GitHub Pages](https://tj60647.github.io/mediapipe-demos/demo-5-face-instrument/)
-
-🌐 **OpenProcessing:** [Try it live](https://openprocessing.org/sketch/2914827)
-
-> **📐 Concept Sidebar: Proximity Trigger**
->
-> A proximity trigger converts a continuous distance value into an on/off state:
-> ```js
-> const dist = Math.sqrt(dx * dx + dy * dy);
-> const active = dist < PROXIMITY_THRESHOLD;
-> ```
-> This is the simplest possible interaction rule. The threshold is tuneable — increase it to make regions easier to activate, decrease it to require the finger to be very close. Noisy tracking becomes a design material rather than a problem: proximity thresholds let you absorb small jitter without false triggers.
-
-> **📐 Concept Sidebar: Rising Edge Detection**
->
-> To spawn a visual effect only when a region *first* becomes active (not on every frame while it stays active), compare the current active set to the previous frame's active set:
-> ```js
-> // prevActive is a Set from the last frame
-> if (!prevActive.has(region.name)) {
->   // region just became active — spawn a ripple
->   ripples.push({ x, y, color, radius: 20, alpha: 0.9 });
-> }
-> prevActive = new Set(currentActive.keys());
-> ```
-> This is a *rising edge* — it fires once per activation event rather than continuously.
-
-**Deliverable:** A live canvas where moving your index finger near different parts of your face triggers distinct coloured glows and ripples across nine face regions.
-
----
-
-## Project Prompts: Face + Hands
-
-If you want to keep building from the existing demos, these three directions stay close to the current face-and-hands pipeline while pushing it toward something more playful and unexpected.
-
-### Invisible Makeup Synth
-
-Use your fingers as tools to "paint" reactive effects onto your tracked face. Different facial regions can produce different visual or sonic responses, turning the piece into a performance instrument rather than a beauty filter.
-
-**Prompt:** Build a face-and-hands prototype where touching or approaching different parts of your face causes strange visual or sonic transformations. Avoid realistic makeup logic. Make it feel uncanny, theatrical, funny, or impossible.
-
-### Mouth DJ / Hand Conducted Voice Machine
-
-Use face landmarks and hand distance to control a playful voice or sound system. Opening the mouth could raise intensity, a finger near the lips could switch samples, and hand height could change pitch or reverb.
-
-**Prompt:** Design a musical or vocal instrument controlled by your face and hands together. The audience should understand that your body is the interface, but the result should be surprising rather than literal.
-
-### Self-Portrait Creature Generator
-
-Turn the face and hands into a live creature that grows extra eyes, antennae, mirrored limbs, or animated features based on tracked motion and spatial relationships.
-
-**Prompt:** Create a live self-portrait system where your face and hands are remixed into a weird character. Use tracking data to control when features appear, stretch, split, or mutate.
-
----
-
-## Beyond Face and Hands
-
-Once you are comfortable with the demos, there are many more MediaPipe tasks to explore. The [`beyond/index.html`](https://tj60647.github.io/mediapipe-demos/beyond/) page introduces five of them with a comparative frame — what each task detects, what it outputs, what interactions it makes possible, and where it is likely to fail.
-
-| Task | What it detects | Project prompt |
-|---|---|---|
-| **Object Detection** | Up to 80 labelled object categories with bounding boxes | Domestic Object Orchestra |
-| **Gesture Recognition** | Seven built-in hand gestures plus underlying landmarks | Secret Handshake Operating System |
-| **Pose Tracking** | 33 full-body landmarks in 3D | Full-Body Puppet Weather System |
-| **Image Classification** | Thousands of ImageNet categories from a single frame | Found Image Fortune Teller |
-| **Audio Classification** | 521 sound categories from a live microphone | Noisy Room Translator |
-
-Each task card on the Beyond page links directly to MediaPipe Studio so you can try it before writing any code.
-
----
-
-## How to Explore Tasks Before Coding
-
-Before you commit to implementing a new task, spend 10–15 minutes in **MediaPipe Studio** to test it live with your webcam. This helps you answer three key questions:
-
-1. **Does this model detect what I need?**
-2. **Is the output stable enough for my project?**
-3. **What settings (confidence, hand count, etc.) make it work best?**
-
-### MediaPipe Studio Exploration Flow
-
-1. Open [MediaPipe Studio](https://mediapipe-studio.webapps.google.com/) in your browser.
-2. Pick one task from the list (start with **Face Landmarker** if you're new):
-   - Face Landmarker (good follow-up to Demo 2)
-   - Hand Landmarker (good follow-up to Demo 1)
-   - Object Detector
-   - Gesture Recognizer
-   - Pose Landmarker
-   - Image Classifier
-   - Audio Classifier
-3. Allow webcam access and adjust these settings one at a time:
-   - **Confidence threshold** — lower it until the model becomes noisy, then raise it until it's stable
-   - **Hand count** (if available) — test both 1 and 2 to understand the tradeoff
-   - **Running mode** — try both live camera and single image modes
-4. Try these things:
-   - Move around the room (does it follow?).
-   - Dim the lights (does it still detect?).
-   - Change your pose or expression dramatically (does it jump or smooth?).
-   - Hold an object in front of your face (does it fail gracefully?).
-5. **Write down one thing you discovered** — does the model behave the way you expected? What surprised you?
-
-> **📐 Concept Sidebar: Evaluation Before Implementation**
->
-> Studio saves you hours of debugging. If a model doesn't behave well in Studio with your actual webcam, implementing it in code won't magically fix it. Use Studio to decide whether a task is right for your project *before* you build.
-
----
-
-## Learning from Code Examples
-
-Once you know which task you want to use, look at working code to understand the pattern. **CodePen** has near-official MediaPipe examples right in the browser; **OpenProcessing** has community sketches.
-
-### CodePen: MediaPipe Task Examples
-
-The [MediaPipe CodePen profile](https://codepen.io/mediapipe-preview/) has working examples for every task. Each pen shows the current JavaScript API in a clean, runnable format.
-
-**How to use CodePen examples:**
-
-1. Browse [MediaPipe CodePen](https://codepen.io/mediapipe-preview/) to find your task.
-2. Click **Fork** to make your own copy.
-3. Read the JavaScript panel and look for:
-   - How the model is imported and initialized
-   - How results are parsed in the callback
-   - How landmarks are drawn or used
-4. Modify one thing at a time (change colours, thresholds, or drawing logic) and watch the result.
-5. **Copy patterns, not the whole code.** You'll learn more by patching it into your own structure than by starting from someone else's sketch.
-
-> **📐 Concept Sidebar: Pattern Over Copy-Paste**
->
-> CodePen examples are reference implementations, not templates. The value is in understanding *how* the model is used, not in copying and pasting entire projects. If you're stuck on a specific task — like parsing hand landmarks or handling confidence scores — CodePen is the fastest way to see the answer.
-
-### OpenProcessing: Community Sketches
-
-The [OpenProcessing](https://openprocessing.org) community often remixes the sketches from this project. Use it to:
-
-- See creative uses of the models beyond the demos
-- Find variations (different drawing styles, thresholds, layouts)
-- Understand what "stable enough" means for your own work
-
-**Suggested search:**
-- `mediapipe hand`
-- `face landmark`
-- `webcam interactive`
-
-Every `sketch.js` in this project can be pasted directly into OpenProcessing, so you can also use your own demos as the baseline for exploration.
-
----
-
-## AI Remix Workflow
-
-You can use AI coding assistants to remix patterns across demos while keeping a stable baseline.
-
-### Remix Recipe
-
-1. Start from one working demo in the [Gallery](https://tj60647.github.io/mediapipe-demos/gallery/).
-2. Borrow one pattern from the core demos:
-   - Demo 3: split view and combined model pipeline
-   - Demo 4: distance / zone / count / mapping logic
-   - Demo 5: proximity triggers and rising-edge effects
-3. Add one prompt from [Beyond Face and Hands](https://tj60647.github.io/mediapipe-demos/beyond/).
-4. Ask the assistant for one small change only (one feature per request).
-5. Run and test after each change before asking for the next one.
-
-> **📐 Concept Sidebar: Keep One Thing Constant**
->
-> When remixing with AI, keep your base demo unchanged except for one clearly scoped addition. If something breaks, you can immediately identify which change caused it and roll back only that part.
-
-### Suggested Prompt Template
-
-```text
-I am editing demo-X in mediapipe-demos.
-Keep the existing structure and comments.
-Add only one feature: <feature>.
-Do not rewrite the whole file.
-Explain which landmarks, thresholds, and mappings you used.
-```
-
-### Remix Goal
-
-- [ ] One baseline demo still works exactly as before
-- [ ] One new interaction feature works reliably
-- [ ] You can explain the landmarks and threshold(s) used
-- [ ] Your code still runs from `http://localhost:<port>/...`
-
----
-
-## Getting Started Checklist
-
-**Start here:** Open the [Gallery](https://tj60647.github.io/mediapipe-demos/gallery/) (no setup needed).
-
-- [ ] Click **Demo 1 — Hand Tracking** and allow webcam access — green dots should follow your hand joints
-- [ ] Try **Demo 2 — Face Mesh** — 468 coloured dots on your face
-- [ ] Try **Demo 3 — Hands and Face Combined** — split-screen view of both models
-- [ ] Try **Demo 4 — Interaction Basics** — see distance, zones, and finger-count values as you move
-- [ ] Try **Demo 5 — Face Instrument** — activate face regions by moving your finger close to them
-- [ ] Open `sketch.js` from any demo and read the comments to understand the code structure
-- [ ] Try changing `debugMode = true` in a sketch and reload to see console output
-- [ ] Open the [Beyond Face and Hands](https://tj60647.github.io/mediapipe-demos/beyond/) page — read the five additional task descriptions
-- [ ] Pick one new task and test it live in [MediaPipe Studio](https://mediapipe-studio.webapps.google.com/) (guided workflow is in the README)
-- [ ] Find a CodePen example of the same task on [MediaPipe CodePen](https://codepen.io/mediapipe-preview/) and read the code
-- [ ] Optional: Paste a `sketch.js` into [OpenProcessing](https://openprocessing.org/) to remix it
-- [ ] Optional: Set up a [local server](#path-3-local-server-optional-for-development) if you want to develop offline
-
----
-
-## Reference: Exploration Sources
-
-The following resources are mentioned throughout the checklist. Use them to explore, learn, and remix:
-
-| Source | Best for | Access |
-|---|---|---|
-| [MediaPipe Studio](https://mediapipe-studio.webapps.google.com/) | Testing any MediaPipe task live with your webcam — no code required | Browser, free |
-| [MediaPipe CodePen](https://codepen.io/mediapipe-preview/) | Near-official working examples for every task | Browser, free (fork to edit) |
-| [OpenProcessing](https://openprocessing.org/) | Sketch culture, remixing, and sharing MediaPipe sketches | Browser, free |
-| [p5.js Examples](https://p5js.org/examples/) | Interaction, drawing, animation patterns | Browser, free |
-| [Beyond Face and Hands](https://tj60647.github.io/mediapipe-demos/beyond/) | Five additional MediaPipe tasks with project prompts | Browser, free |
-
-📂 **Resources page:** [`resources/index.html`](resources/index.html) has additional links.
 
 ---
 
 ## Usage Notes
 
-1. All models are loaded from the [jsDelivr CDN](https://www.jsdelivr.com/) — an internet connection is required.
-2. Webcam access requires the browser to be served over HTTPS, or from `localhost`.
-3. MediaPipe runs entirely client-side. No video data is sent to any server.
-4. For best performance, use Chrome or Edge on a reasonably modern device.
-5. To use a sketch in OpenProcessing, paste the `sketch.js` contents into a new sketch and add the MediaPipe CDN `<script>` tags in the OpenProcessing sketch settings.
+1. The MediaPipe library and model are loaded from a CDN, so an internet connection is required.
+2. MediaPipe runs entirely client-side. No video data is sent to any server.
+3. For best performance, use Chrome or Edge.
+4. Phones default to the CPU delegate and desktops to GPU. Add `?delegate=cpu` or `?delegate=gpu` to the URL to override.
+5. If you have more than one camera, a selector appears in the top-right corner.
+6. Add `?debug=1` to the URL (or set `debugMode = true` in `sketch.js`) to show a faces/eyes counter and log detection info to the browser console.
 
 ---
 
 ## Troubleshooting
 
-1. **No webcam prompt or blank video:** make sure you're opening the demo via `http://localhost:<port>/...` (not `file://...`).
-2. **Camera blocked:** click the camera icon in the browser address bar and allow access, then reload.
-3. **Old behavior after code changes:** hard refresh with `Ctrl+F5` to clear cached scripts.
-4. **Console message about async listener / `installHook.js`:** this is usually from a browser extension, not the demo code.
-5. **404 for `/.well-known/appspecific/com.chrome.devtools.json`:** harmless Chrome/DevTools probe, safe to ignore.
+1. **No webcam prompt or blank video:** make sure you're opening the demo via `http://localhost:<port>/...`, not `file://...`.
+2. **Camera blocked:** click the camera icon in the browser address bar, allow access, then reload.
+3. **Old behaviour after code changes:** hard refresh (`Cmd+Shift+R` on Mac, `Ctrl+F5` on Windows).
+4. **No dots appear:** the face must be clearly visible and reasonably well lit. Add `?debug=1` to the URL to see how many faces are being detected.
+5. **Some people are missed:** the face model is built for faces within about 2 metres of the camera, facing it. Move closer, add light, or lower the `MIN_*_CONFIDENCE` values in `sketch.js`.
 
 ---
 

@@ -2,7 +2,7 @@
   "name": "mediapipe-demos",
   "version": "0.1.0",
   "private": true,
-  "description": "Static MediaPipe browser demos for MDes Prototyping, CCA.",
+  "description": "MediaPipe eye and iris tracking browser demo, adapted from MDes Prototyping, CCA.",
   "author": "Thomas J McLeish",
   "license": "MIT",
   "scripts": {

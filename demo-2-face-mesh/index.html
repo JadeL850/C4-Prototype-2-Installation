@@ -2,7 +2,7 @@
   ============================================================================
   File:    index.html
   Project: MediaPipe Demos — MDes Prototyping, CCA
-  Demo:    2 — Face Mesh
+  Demo:    2 — Face Mesh (eye-tracking installation)
 
   Authors: Copilot
            Thomas J McLeish
@@ -10,16 +10,18 @@
   ============================================================================
 
   PURPOSE
-  This is the HTML wrapper for the Demo 2 face-mesh sketch. sketch.js loads
-  the MediaPipe Tasks Vision library via dynamic import (no additional <script>
-  tag is needed here) and runs all demo logic.
+  Full-screen projection for an exhibition installation. An article about
+  surveillance scrolls slowly up the screen; visitors' eyes are tracked by
+  the webcam and drawn over the text, sized by how close each person stands.
+
+  LAYERS (back to front)
+    #articleStage  — the scrolling article (edit it in <article> below)
+    #canvas        — transparent overlay where sketch.js draws the eyes
+    #cameraSelectWrapper — camera picker, hidden until hovered
 
   HOW TO USE
-  Open this file in any modern browser (Chrome or Edge recommended).
-  Allow the browser to access your webcam when prompted.
-
-  If you are using OpenProcessing, paste the contents of sketch.js into
-  a new sketch there — OpenProcessing automatically provides the HTML context.
+  Serve over localhost or HTTPS, open in Chrome or Edge, allow the camera,
+  then press F for fullscreen. Any other key clears the eye trails.
   ============================================================================
 -->
 <!DOCTYPE html>
@@ -27,40 +29,149 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Demo 2 — Face Mesh | MediaPipe Demos</title>
+  <title>Eye Tracking | MediaPipe</title>
+  <!-- Newsreader: an editorial serif with optical sizes, so the same family
+       works for the huge headline and the body text. Libre Franklin: the
+       sans-serif for the byline, in the newspaper
+       style. Both fall back to system fonts if offline. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&family=Libre+Franklin:wght@400;500;600&display=swap">
   <script defer src="sketch.js"></script>
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      background: #111;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
       font-family: 'Segoe UI', system-ui, sans-serif;
       color: #e0e0e0;
+      cursor: none;            /* no mouse pointer on the projection */
     }
 
-    h1 {
-      font-size: 1.2rem;
+    /* ── Article layer ─────────────────────────────────────────────────── */
+
+    /* Fades the text out at the top and bottom edges of the projection. */
+    #articleStage {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 8%, #000 92%, transparent 100%);
+              mask-image: linear-gradient(to bottom, transparent 0%, #000 8%, #000 92%, transparent 100%);
+    }
+
+    /* sketch.js moves this upwards continuously and appends a copy of the
+       article so the scroll loops without a visible jump. */
+    #articleTrack {
+      will-change: transform;
+    }
+
+    /* Typeset edge to edge. Everything is sized from the viewport width, so
+       the layout keeps the same proportions on a laptop and a projector:
+       body text is ~3vw, giving ~65 characters per line across the full
+       width. */
+    .article {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 10vh 4.5vw 22vh;  /* top + bottom = the gap between loops */
+      font-family: 'Newsreader', Georgia, 'Times New Roman', serif;
+      font-optical-sizing: auto;
+      font-size: clamp(20px, 3vw, 68px);
+      font-weight: 380;
+      line-height: 1.38;
+      color: #9c9c9c;
+      font-kerning: normal;
+      text-rendering: optimizeLegibility;
+      hyphens: manual;           /* no word splitting at display sizes */
+    }
+
+    .article h1 {
+      font-size: 2.1em;          /* ~6vw — sized for a long, multi-line headline */
+      font-weight: 400;
+      line-height: 1.04;
+      letter-spacing: -0.015em;
+      color: #ececec;
+      margin: 0 0 0.45em -0.03em;
+      text-wrap: balance;
+    }
+
+    .article h2 {
+      font-size: 0.62em;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #d0d0d0;
+      margin: 2.4em 0 0.9em;
+      padding-top: 1.1em;
+      border-top: 1px solid #333;
+    }
+
+    .article p {
+      margin: 0 0 0.9em;
+      text-wrap: pretty;         /* avoids single-word last lines */
+    }
+
+    /* ── Newspaper article parts ── */
+
+    .article .summary {
+      font-size: 1.15em;
+      line-height: 1.3;
+      color: #c4c4c4;
+      margin: 0 0 1.2em;
+      text-wrap: pretty;
+    }
+
+    /* Byline, reporter note and dates, in the sans-serif like a newspaper. */
+    .article .byline {
+      font-family: 'Libre Franklin', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.5em;
+      line-height: 1.45;
+      color: #a8a8a8;
+      margin: 0 0 2.4em;
+    }
+
+    .article .byline p {
+      margin: 0 0 0.5em;
+    }
+
+    .article .byline-names {
+      color: #c8c8c8;
+    }
+
+    .article .byline strong {
       font-weight: 600;
-      margin: 1rem 0 0.25rem;
-      color: #60a5fa;
+      color: #e4e4e4;
     }
 
-    p.subtitle {
-      font-size: 0.85rem;
-      color: #888;
-      margin: 0 0 1rem;
+    .article .byline-note {
+      font-size: 0.85em;
+      color: #8a8a8a;
+      max-width: 60em;
     }
 
+    .article .byline-dates {
+      font-size: 0.85em;
+      color: #7c7c7c;
+    }
+
+    .article .byline-dates time + time::before {
+      content: "·";
+      margin: 0 0.6em;
+    }
+
+    /* Keeps hyphenated ages like "27-year-old" on one line. */
+    .article .nowrap {
+      white-space: nowrap;
+    }
+
+    /* ── Eye overlay ───────────────────────────────────────────────────── */
+
+    /* The canvas covers the whole window; sketch.js sizes it to match. */
     .media-container {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      gap: 10px;
-      padding: 0 1rem;
+      position: fixed;
+      inset: 0;
     }
 
     #video {
@@ -68,30 +179,30 @@
     }
 
     #canvas {
-      max-width: 100%;
-      height: auto;
-      border: 1px solid #333;
-      border-radius: 6px;
+      display: block;
+      width: 100%;
+      height: 100%;
     }
 
-    footer {
-      margin-top: 1.5rem;
-      font-size: 0.75rem;
-      color: #444;
-      padding-bottom: 2rem;
-    }
-
-    footer a {
-      color: #555;
-      text-decoration: none;
-    }
+    /* ── Camera picker (for setup only) ────────────────────────────────── */
 
     .camera-controls {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 10;
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      margin-bottom: 0.75rem;
       font-size: 0.85rem;
+      cursor: auto;
+      opacity: 0;              /* invisible on the projection until hovered */
+      transition: opacity 0.2s;
+    }
+
+    .camera-controls:hover,
+    .camera-controls:focus-within {
+      opacity: 1;
     }
 
     .camera-controls label {
@@ -115,20 +226,97 @@
   </style>
 </head>
 <body>
-  <h1>Demo 2 — Face Mesh</h1>
-  <p class="subtitle">MediaPipe FaceMesh • Up to 478 real-time facial landmarks from your webcam</p>
-  <div id="cameraSelectWrapper" style="display:none;" class="camera-controls">
-    <label for="cameraSelect">Camera:</label>
-    <select id="cameraSelect"></select>
+  <div id="articleStage">
+    <div id="articleTrack">
+      <!-- ARTICLE — laid out in the New York Times article format:
+           headline → summary → byline → body, with section headings.
+
+           Text: "Flock Cameras Can Track Every Car in America. Police Love
+           Them. Citizens Don't." by Fernando Alfonso III and Kashmir Hill,
+           The New York Times, Aug. 10, 2026. -->
+      <article class="article" id="article">
+        <h1>Flock Cameras Can Track Every Car in America. Police Love Them. Citizens Don’t.</h1>
+
+        <p class="summary">In Texas, there’s one thing liberals and conservatives agree on: They don’t want cameras trained on their cars.</p>
+
+
+        <div class="byline">
+          <p class="byline-names">By <strong>Fernando Alfonso III</strong> and <strong>Kashmir Hill</strong></p>
+          <p class="byline-note">Fernando Alfonso III, Texas editor, reported from Carrollton and Houston. Kashmir Hill is a technology journalist.</p>
+          <p class="byline-dates">
+            <time datetime="2026-08-10">Published Aug. 10, 2026</time><time datetime="2026-08-11">Updated Aug. 11, 2026</time>
+          </p>
+        </div>
+
+        <p>Driving down a road lined with strip malls outside Dallas, Philip, a <span class="nowrap">27-year-old</span> cellphone tower repairman, was describing the exquisite piquancy of his homegrown hot peppers when he stopped midsentence.</p>
+        <p>“Flock!” he said, pointing to a traffic light pole at an intersection. Attached to it was a small black box with a camera that takes photos as cars drive by. It was a license plate reader made by Flock Safety, based in Atlanta, that alerts law enforcement when it spots wanted cars and allows officers to see where cars of interest have been.</p>
+        <p>Philip pulled into a strip mall, parked outside a dentist’s office and opened an app on his phone. The app, DeFlock, invites people to “view and contribute to an open map of public mass surveillance devices.” He zoomed in on the intersection on the digital map and plotted the location of the camera. Philip asked that his full name be withheld, because Flock’s chief executive, Garrett Langley, once called DeFlock “terroristic.”</p>
+        <p>To Philip, DeFlock is about pushing against the proliferation of cameras that capture the ordinary moments of ordinary people.</p>
+        <p>“And what is my way of pushing back? Education. Data,” Philip said. “Am I just being paranoid? No, they’re actually everywhere.”</p>
+        <p>Flock’s 120,000 cameras can be found alongside roads in every state but Alaska, allowing law enforcement officers to see within seconds where a car might be, and where it has been. The company has contracts with 7,000 law enforcement agencies, which is 40 percent of all departments in the United States.</p>
+        <p>Other companies sell license plate tracking services, but Flock, a private company valued at $8.4 billion, has become a lightning rod because of its rapid expansion, the ubiquity of its cameras, and a number of controversies involving its product.</p>
+        <p>A Texas officer used Flock’s cameras to track a woman across state lines who was suspected of self-administering an abortion. Officers across the country have abused their access to Flock’s cameras, including to track romantic partners, resulting in discipline and termination. Los Angeles and Dayton, Ohio, among other cities, recently suspended their contracts with Flock to prevent immigration authorities from accessing data from the cameras. Dayton resorted to covering the cameras with trash bags. In cities like Houston, Oakland, Calif., and Grand Junction, Colo., residents have taken matters into their own hands, with police reports and surveillance footage documenting Flock cameras being cut down, splattered with paint and even shot.</p>
+        <p>Flock’s pitch is simple: It can help the police find stolen cars, locate wanted people and solve crimes. One license-plate reader led to the arrest in Florida of a man who had threatened a mass shooting in Louisiana; another helped police find the man eventually convicted in an assassination attempt against Donald J. Trump.</p>
+        <p>But as its cameras have spread, so has the opposition. Americans are accustomed to surveillance cameras. They put them on their doorbells and tolerate them on street corners, offices and restaurants. What sets Flock’s cameras apart is that they are connected, creating a vast, searchable national network — often surprising residents who didn’t realize their local governments had signed up for them and raising fears of Big Brother-style surveillance. And they are hard to miss once you start noticing them.</p>
+        <p>“We all want, expect and deserve privacy. The problem is that we typically cannot feel, see, or experience the loss as it is happening,” said Danielle Citron, a professor of law at the University of Virginia. “Seeing those cameras is a punch in the gut — we see them and it says you have no room to just be, to go about your day feeling lost in the crowd.”</p>
+        <p>As Flock built one of the nation’s largest vehicle-tracking networks, Texas became a bellwether both for law enforcement’s adoption of the technology and for the growing backlash. Flock started selling its services to police departments in early 2020, installing a few dozen cameras in a suburb of Houston. Six years later, 700 departments in Texas contract with Flock. The opposition includes liberals worried about government surveillance, conservatives skeptical of expanding state power and privacy-conscious citizens and lawmakers concerned about how the network could be abused.</p>
+        <p>“It’s going to be an ongoing debate probably forever,” Mr. Langley, Flock’s chief executive, said in an interview. “We should have this debate and we should continue to evolve our point of view as a society of what we’re comfortable with and what level of safety we want.”</p>
+        <h2>Citizens Against Surveillance</h2>
+        <p>In late May, Hannah Foust’s neighborhood group chat was abuzz about a license plate reader that had been installed on her street in Carrollton, Texas, a suburb of Dallas.</p>
+        <p>Then another camera was spotted outside the recreation center, across from the community pool.</p>
+        <p>“All of us really got the ick,” Ms. Foust, 41, said.</p>
+        <p>Ms. Foust, who said she leans left politically, began posting about license plate readers on Reddit groups devoted to Dallas and Carrollton and started a digital petition to have the cameras removed from her community. By late July, she had collected roughly 800 signatures from neighbors, some of whom also spoke out against the cameras at a Carrollton City Council meeting on July 24.</p>
+        <p>“I’m very much your average American. I vote, but I’ve never organized or been really an activist in any way,” said Ms. Foust, who works in human resources and has two children. “I’m not committing any crimes, but I don’t want necessarily anyone, let alone government agencies or a private company, to have a view of where I drop off my kids, or what route is my favorite for my commute, or whether I prefer H-E-B or Kroger, or what house of worship I attend.”</p>
+        <p>Noticing cameras and posting about them on Reddit led a software engineer named Will Freeman to create DeFlock in 2024. He was on a road trip from the West Coast to Alabama and kept seeing cameras along the way. He decided to create a crowdsourced map to plot the devices in Huntsville, Ala., where he was living, and the project went viral. The app has been downloaded by more than 350,000 people, Mr. Freeman said, and the site says it has mapped 125,000 license-plate readers made by Flock and other companies.</p>
+        <p>Mr. Freeman, 27, now lives in Boulder, Colo., which also has a contract with Flock. The city says its 31 cameras have led to a 34.5 percent decline in motor vehicle theft and helped solve other crimes. Mr. Freeman, however, said he did not think that privacy should be sacrificed for safety. The cameras create an infrastructure for the government to track and harass critics, he said, even if most officers aren’t abusing their access.</p>
+        <p>Wanting to know when his own vehicle had been spotted, Mr. Freeman requested those records from the Boulder Police Department, which refused to provide them. In May, he filed a lawsuit against the city, saying the cameras created an unconstitutional “warrantless surveillance dragnet.” (The city declined to comment on the suit, but in legal filings has said “there is no reasonable expectation of privacy on publicly owned streets and sidewalks.”)</p>
+        <p>“It feels bad to always be watched and scrutinized,” Mr. Freeman said.</p>
+        <p>Across Texas, the opposition to the cameras has been bipartisan. Flock’s contracts have been canceled in liberal Austin as well as in Bandera, a conservative Hill Country town of about 900 people. The city said at least one of its cameras was vandalized.</p>
+        <p>In Congress, Keith Self, a Republican whose district lies north of Dallas, introduced a bill in July that would require federal law enforcement agencies to obtain a warrant before accessing or querying data collected by state and local surveillance systems, license plate readers among them.</p>
+        <p>“We have a surveillance state happening,” said Mr. Self, who is also a retired Army colonel and former county judge. “This is not a left issue, not a right issue. It is a personal issue.”</p>
+        <h2>Surveillance as a Service</h2>
+        <p>Mr. Langley, 39, started Flock because he was troubled by how easy it was to break into cars in his neighborhood in Atlanta. When he asked police why they were unable to catch the thieves, Mr. Langley said he was told they needed the perpetrators’ license plate numbers.</p>
+        <p>Mr. Langley, an electrical engineer, teamed up with two fellow Georgia Tech graduates to create a solution: cheap internet-connected cameras, powered by solar panels and paired with software to extract license plate numbers from photos.</p>
+        <p>When Flock was founded in 2017, it sold devices largely to homeowners’ associations. But in 2020, it began working with police departments. That year, Mr. Langley said, his S.U.V. was stolen, and Flock cameras helped locate it.</p>
+        <p>Flock charges around $3,000 per camera per year, Mr. Langley said. In exchange, the company installs and maintains the cameras, provides a searchable database of every vehicle that passes them, and sends alerts if the cameras spot cars on a so-called hot list — like the F.B.I.’s database of stolen vehicles and license plate numbers associated with missing or wanted people. In recent years, as artificial intelligence has advanced, Flock has added the ability to search for cars based on their make, type, color, or unique details, such as bumper stickers or visible damage.</p>
+        <p>Flock showed The New York Times how its technology works. After logging into the system, users must acknowledge they cannot search for license plates related to “reproductive care” offenses in 17 states and Washington, D.C. (Those places have expressly prohibited those searches, though a Flock spokeswoman said officers could do searches related to abortions in states only where abortion is illegal.) There is a similar warning about nine states that prohibit searching their cameras for “immigration enforcement.”</p>
+        <p>To perform a search, officers specify the type of crime, from animal cruelty to homicide. They then enter a license plate number or description of the vehicle, and a location, or simply go with the default: “All network(s) selected.” A search returns images of cars that are a match, along with exactly when they were spotted, where and on which law enforcement agency’s cameras. By default, the photos the cameras take are deleted after 30 days, though departments can change how long they retain them.</p>
+        <p>If a police department wants access to other cameras across the state or the country, it has to share access to its own. Most agencies search and share information nationally.</p>
+        <p>“Criminals don’t care where cities start and stop,” Mr. Langley said. “You can share with no one, and we have plenty of customers who do that.”</p>
+        <p>“You’ll solve less crime, but that’s OK,” he added.</p>
+        <p>Last year, when he was asked about the spreading opposition to Flock in a video interview with Forbes, Mr. Langley said he respected groups, like the American Civil Liberties Union, that are fighting the company in court, but called citizen groups like DeFlock “terroristic organizations” whose “primary motivation is chaos.”</p>
+        <p>This month, Tucker Carlson, the conservative commentator, and The Blaze, a far-right news outlet, mocked Mr. Langley’s equating a crowdsourced mapping project with terrorism.</p>
+        <p>Mr. Carlson said he had only recently become aware of the scale of Flock’s network after visiting DeFlock, which he told The Times had left him “horrified.” He said he was surprised such an expansive surveillance system had grown with so little public attention.</p>
+        <p>“Whether you’re libertarian, conservative, MAGA, progressive, everybody has an objection to Flock,” said Chad Marlow of the A.C.L.U.</p>
+        <p>Mr. Langley has since apologized for the terrorism comment. “Seeing people become active in their local communities is broadly really good,” he said in an interview.</p>
+        <h2>Safety v. Privacy</h2>
+        <p>Texas opposition may be attracting attention, but it hasn’t slowed Flock’s growth. Across the state, new cities are signing contracts faster than others are canceling them, said Jennifer Szimanski, a spokeswoman for the Combined Law Enforcement Associations of Texas, a police union that represents more than 28,000 officers.</p>
+        <p>The reason, she said, is impressive results. Some Texas police departments recovered stolen vehicles by the hundreds after installing the cameras, she said, and in smaller municipalities, vehicle burglaries have all but stopped. Despite community complaints, officials in Harris County, which operates 480 cameras, and Carrollton — which operates 67 license-plate readers, including 19 from Flock — are not changing their minds about the cameras.</p>
+        <p>“If a supplemental investigative tool helps our officers solve crimes more effectively, provides value to our residents, and can be managed responsibly, then it’s something we’ll continue to consider,” said Carrollton’s mayor, Steve Babick.</p>
+        <p>Independent research on the cameras’ efficacy is sparse. A 2024 study found that Flock’s cameras increased officers’ case clearance rates by 9 percent — but 404 Media, among others, criticized the findings because Flock had partnered with the researchers and chose the agencies that were part of the study.</p>
+        <p>States are starting to create rules for how police can use the technology. To address the concern about rogue officers abusing the system, 13 states now have laws requiring audits of license plate reader systems to detect misuse by officers, according to a legislation tracker created by the Policing Project at the New York University School of Law.</p>
+        <p>Texas is not among them. Ms. Szimanski said that the risk of Texas officers’ misusing the system was no greater than with the other databases they have access to, and that Flock provides a log of every search, who conducted it and why.</p>
+        <p>Being able to search all the cars on the road across the country is certainly convenient for authorities, but Barry Friedman, a law professor and faculty director of the Policing Project, argues that creating a vast database of Americans’ movements is not constitutional.</p>
+        <p>“This is indiscriminate data collection, not targeting specific crimes,” Mr. Friedman said. “The reason we have a Fourth Amendment is that they didn’t think the government should just be able to go after anybody even if they did nothing wrong.”</p>
+        <p>Courts have thus far disagreed with that reading, but have signaled that as the technology expands, that could change. In one case, in which residents sued Norfolk, Va., for installing 172 Flock cameras, a federal judge ruled that license plate readers might one day become so ubiquitous that their use amounts to an unconstitutional dragnet search, but “not today.”</p>
+        <p>“I don’t think judges understand the country is now blanketed with these things and they’re all interconnected,” said Sid Thaxter, of the National Association of Criminal Defense Lawyers.</p>
+        <p>The DeFlock map allows people to see where cameras are positioned along their regular driving routes, and it has been a “really valuable tool” for privacy groups and lawyers arguing against the spread of these cameras, Mr. Thaxter said. But volunteers can do only so much to document the spread of the surveillance state.</p>
+        <p>Philip, the DeFlock contributor from the Dallas suburbs, estimates he has mapped around 200 cameras in his community, a figure he called “both a lot and not a lot.”</p>
+        <p>He repairs radios on cellphone towers for a living, so he is “always looking around at infrastructure.” On his short commute to work, he estimates he passes nine Flock cameras.</p>
+        <p>Plotting cameras on a map is his form of protest. He has little interest in attending city council meetings, nor in destroying cameras.</p>
+        <p>“It’s kind of a hydra situation,” he said. “You chop down one, and 20 more take its place.”</p>
+      </article>
+    </div>
   </div>
+
   <div class="media-container">
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas"></canvas>
   </div>
-  <footer>
-    <a href="../gallery/index.html">← Back to Gallery</a>
-    &nbsp;|&nbsp;
-    MediaPipe Demos — MDes Prototyping, CCA
-  </footer>
+
+  <div id="cameraSelectWrapper" style="display:none;" class="camera-controls">
+    <label for="cameraSelect">Camera:</label>
+    <select id="cameraSelect"></select>
+  </div>
 </body>
 </html>

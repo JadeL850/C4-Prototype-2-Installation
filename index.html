@@ -1,0 +1,43 @@
+<!--
+  ============================================================================
+  File:    index.html
+  Project: MediaPipe Eye Tracking
+  License: MIT — see LICENSE in the root of this repository
+  ============================================================================
+
+  PURPOSE
+  Root entry point. Static servers (VS Code Live Server, python http.server,
+  GitHub Pages) show a folder listing when the root has no index.html, so
+  this page forwards straight to the eye-tracking demo.
+  ============================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="0; url=demo-2-face-mesh/">
+  <title>Eye Tracking | MediaPipe</title>
+  <script>
+    // Keep any query string (e.g. ?delegate=cpu) when forwarding.
+    window.location.replace("demo-2-face-mesh/" + window.location.search);
+  </script>
+  <style>
+    html, body {
+      margin: 0;
+      background: #000;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      text-align: center;
+      padding-top: 3rem;
+    }
+
+    a {
+      color: #60a5fa;
+    }
+  </style>
+</head>
+<body>
+  <p>Opening the eye-tracking demo… <a href="demo-2-face-mesh/">Click here</a> if nothing happens.</p>
+</body>
+</html>
