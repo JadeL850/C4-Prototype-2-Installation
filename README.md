@@ -1,4 +1,6 @@
-# MediaPipe Eye Tracking
+# C4-Prototype-2-Installation
+
+Installation demo/mockup of anti surveillance tech exhibition (Prototype 2).
 
 A projection piece for an exhibition installation about surveillance. Visitors walk into a dark room where an article scrolls slowly up a large projection. As they read, a camera tracks their eyes and draws them over the text, so every reader sees themselves being watched. It runs entirely in the browser using [MediaPipe](https://ai.google.dev/edge/mediapipe/solutions/guide) Face Landmarker, adapted from the MediaPipe Demos project in the MDes Prototyping course at CCA.
 
