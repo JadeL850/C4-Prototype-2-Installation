@@ -11,24 +11,46 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Eye Tracking | MediaPipe</title>
-  <!-- Newsreader: an editorial serif with optical sizes, so the same family
-       works for the huge headline and the body text. Libre Franklin: the
-       sans-serif for the byline, in the newspaper
-       style. Both fall back to system fonts if offline. -->
+  <!-- Hanken Grotesk (Google Fonts) for the body text. The headline uses
+       Coverage Track, a custom face loaded from fonts/. Both fall back to
+       system fonts if offline. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&family=Libre+Franklin:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..700;1,300..700&display=swap">
+  <link rel="preload" href="fonts/Coverage-Track.otf" as="font" type="font/otf" crossorigin>
   <script defer src="sketch.js"></script>
   <style>
+    @font-face {
+      font-family: 'Coverage Track';
+      src: url('fonts/Coverage-Track.otf') format('opentype');
+      font-display: swap;
+    }
+
+    /* Colour palette. The accent colours are also used for the eyes in
+       sketch.js (PALETTES). */
+    :root {
+      --ground:        #08080A;
+      --vermilion:     #FF4F2E;
+      --paper-white:   #F2EFE8;
+      --lemon:         #F4E31C;
+      --signal-green:  #2ED46A;
+      --cyan:          #2BC3E6;
+      --cobalt:        #2F5BFF;
+      --ink-on-colour: #0B0B0C;
+      --headline-text: #F2EFE8;
+      --body-text:     #8A8780;
+      --rule:          rgba(138, 135, 128, 0.35);  /* body text, faded */
+    }
+
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #000;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      color: #e0e0e0;
+      background: var(--ground);
+      font-family: 'Hanken Grotesk', 'Helvetica Neue', Arial, sans-serif;
+      color: var(--body-text);
       cursor: none;            /* no mouse pointer on the projection */
     }
 
@@ -57,23 +79,23 @@
       box-sizing: border-box;
       width: 100%;
       padding: 10vh 4.5vw 22vh;  /* top + bottom = the gap between loops */
-      font-family: 'Newsreader', Georgia, 'Times New Roman', serif;
-      font-optical-sizing: auto;
+      font-family: 'Hanken Grotesk', 'Helvetica Neue', Arial, sans-serif;
       font-size: clamp(20px, 3vw, 68px);
-      font-weight: 380;
+      font-weight: 400;
       line-height: 1.38;
-      color: #9c9c9c;
+      color: var(--body-text);
       font-kerning: normal;
       text-rendering: optimizeLegibility;
       hyphens: manual;           /* no word splitting at display sizes */
     }
 
     .article h1 {
+      font-family: 'Coverage Track', 'Hanken Grotesk', 'Helvetica Neue', Arial, sans-serif;
       font-size: 2.1em;          /* ~6vw — sized for a long, multi-line headline */
       font-weight: 400;
       line-height: 1.04;
       letter-spacing: -0.015em;
-      color: #ececec;
+      color: var(--headline-text);
       margin: 0 0 0.45em -0.03em;
       text-wrap: balance;
     }
@@ -83,10 +105,10 @@
       font-weight: 500;
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: #d0d0d0;
+      color: var(--headline-text);
       margin: 2.4em 0 0.9em;
       padding-top: 1.1em;
-      border-top: 1px solid #333;
+      border-top: 1px solid var(--rule);
     }
 
     .article p {
@@ -99,17 +121,16 @@
     .article .summary {
       font-size: 1.15em;
       line-height: 1.3;
-      color: #c4c4c4;
+      color: var(--paper-white);
       margin: 0 0 1.2em;
       text-wrap: pretty;
     }
 
-    /* Byline, reporter note and dates, in the sans-serif like a newspaper. */
+    /* Byline, reporter note and dates. */
     .article .byline {
-      font-family: 'Libre Franklin', 'Helvetica Neue', Arial, sans-serif;
       font-size: 0.5em;
       line-height: 1.45;
-      color: #a8a8a8;
+      color: var(--body-text);
       margin: 0 0 2.4em;
     }
 
@@ -118,23 +139,23 @@
     }
 
     .article .byline-names {
-      color: #c8c8c8;
+      color: var(--body-text);
     }
 
     .article .byline strong {
       font-weight: 600;
-      color: #e4e4e4;
+      color: var(--paper-white);
     }
 
     .article .byline-note {
       font-size: 0.85em;
-      color: #8a8a8a;
+      color: var(--body-text);
       max-width: 60em;
     }
 
     .article .byline-dates {
       font-size: 0.85em;
-      color: #7c7c7c;
+      color: var(--body-text);
     }
 
     .article .byline-dates time + time::before {
@@ -187,13 +208,13 @@
     }
 
     .camera-controls label {
-      color: #aaa;
+      color: var(--body-text);
     }
 
     .camera-controls select {
-      background: #222;
-      color: #e0e0e0;
-      border: 1px solid #444;
+      background: var(--ground);
+      color: var(--paper-white);
+      border: 1px solid var(--rule);
       border-radius: 4px;
       padding: 0.25rem 0.5rem;
       font-size: 0.85rem;
@@ -202,7 +223,7 @@
 
     .camera-controls select:focus {
       outline: none;
-      border-color: #666;
+      border-color: var(--body-text);
     }
   </style>
 </head>

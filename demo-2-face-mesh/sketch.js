@@ -32,7 +32,7 @@ const fallbackDelegate = preferredDelegate === "GPU" ? "CPU" : "GPU";
 
 // Background used when saving the eye layer as a PNG. On screen the eye
 // canvas is transparent so the article shows through.
-const BACKGROUND_COLOR = "#000";
+const BACKGROUND_COLOR = "#08080A";   // Ground
 
 // Maximum number of faces (pairs of eyes) tracked at once. 10 faces = up to
 // 20 eyes. Higher values cost more processing per frame.
@@ -261,14 +261,18 @@ const IRIS_INDICES = new Set(EYES.flatMap(eye => [eye.irisCenter, ...eye.irisEdg
 // =============================================================================
 // COLOUR PALETTES
 // =============================================================================
-// One palette per person, so visitors can pick out their own eyes. The
-// colours are the ones surveillance and tracking systems use to mark
-// individual subjects:
-//   - NATO joint military symbology (APP-6) marks tracked subjects by
-//     affiliation: blue = friendly, red = hostile, green = neutral,
-//     yellow = unknown.
-//   - Person-tracking and CCTV analytics software adds alert colours:
-//     magenta = flagged, orange = person of interest, violet = identified.
+// One palette per person, so visitors can pick out their own eyes. All
+// colours come from the installation palette (see :root in index.html):
+const VERMILION    = "#FF4F2E";
+const PAPER_WHITE  = "#F2EFE8";
+const LEMON        = "#F4E31C";
+const SIGNAL_GREEN = "#2ED46A";
+const CYAN         = "#2BC3E6";
+const COBALT       = "#2F5BFF";
+//
+// The names follow the colours surveillance and tracking systems use to
+// mark individual subjects (NATO APP-6: blue = friendly, red = hostile,
+// green = neutral, yellow = unknown; CCTV analytics adds alert markings).
 //
 //   eye  — eye-outline dots, in the subject's marking colour
 //   iris — iris dots, in a contrasting colour from the same set so the
@@ -278,13 +282,13 @@ const IRIS_INDICES = new Set(EYES.flatMap(eye => [eye.irisCenter, ...eye.irisEdg
 // palette no one else is using; with more people than palettes, colours
 // start to repeat.
 const PALETTES = [
-  { name: "FRIENDLY",           eye: "#4cc9ff", iris: "#ff3b4e" },
-  { name: "HOSTILE",            eye: "#ff3b4e", iris: "#ffe14d" },
-  { name: "NEUTRAL",            eye: "#3dff7a", iris: "#ff3df2" },
-  { name: "UNKNOWN",            eye: "#ffe14d", iris: "#4cc9ff" },
-  { name: "FLAGGED",            eye: "#ff3df2", iris: "#3dff7a" },
-  { name: "PERSON OF INTEREST", eye: "#ff8a1f", iris: "#4cc9ff" },
-  { name: "IDENTIFIED",         eye: "#a97bff", iris: "#ffe14d" }
+  { name: "FRIENDLY",           eye: COBALT,       iris: LEMON },
+  { name: "HOSTILE",            eye: VERMILION,    iris: CYAN },
+  { name: "NEUTRAL",            eye: SIGNAL_GREEN, iris: VERMILION },
+  { name: "UNKNOWN",            eye: LEMON,        iris: COBALT },
+  { name: "FLAGGED",            eye: CYAN,         iris: VERMILION },
+  { name: "PERSON OF INTEREST", eye: PAPER_WHITE,  iris: VERMILION },
+  { name: "IDENTIFIED",         eye: SIGNAL_GREEN, iris: COBALT }
 ];
 
 // =============================================================================
@@ -320,8 +324,8 @@ window.onload = async function () {
   statusBanner.style.zIndex = "9999";
   statusBanner.style.padding = "8px 10px";
   statusBanner.style.borderRadius = "8px";
-  statusBanner.style.background = "rgba(0, 0, 0, 0.72)";
-  statusBanner.style.color = "#f3f4f6";
+  statusBanner.style.background = "rgba(8, 8, 10, 0.72)";
+  statusBanner.style.color = "#F2EFE8";
   statusBanner.style.font = "12px/1.3 monospace";
   statusBanner.style.maxWidth = "min(80vw, 420px)";
   statusBanner.style.pointerEvents = "none";
@@ -610,7 +614,7 @@ window.onload = async function () {
   if (debugMode) {
     debugCounter.style.cssText =
       "position:fixed;left:12px;bottom:12px;z-index:10;" +
-      "font:14px monospace;color:#888;pointer-events:none;";
+      "font:14px monospace;color:#8A8780;pointer-events:none;";
     document.body.appendChild(debugCounter);
   }
 
