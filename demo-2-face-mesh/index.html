@@ -11,21 +11,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Eye Tracking | MediaPipe</title>
-  <!-- Hanken Grotesk (Google Fonts) for the body text. The headline uses
-       Coverage Track, a custom face loaded from fonts/. Both fall back to
-       system fonts if offline. -->
+  <!-- Type (Google Fonts, with system fallbacks if offline):
+       Barlow Condensed — headlines · Hanken Grotesk — main text ·
+       Share Tech Mono — small text such as credits and dates. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..700;1,300..700&display=swap">
-  <link rel="preload" href="fonts/Coverage-Track.otf" as="font" type="font/otf" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Hanken+Grotesk:ital,wght@0,300..700;1,300..700&family=Share+Tech+Mono&display=swap">
   <script defer src="sketch.js"></script>
   <style>
-    @font-face {
-      font-family: 'Coverage Track';
-      src: url('fonts/Coverage-Track.otf') format('opentype');
-      font-display: swap;
-    }
-
     /* Colour palette. The accent colours are also used for the eyes in
        sketch.js (PALETTES). */
     :root {
@@ -40,6 +33,10 @@
       --headline-text: #F2EFE8;
       --body-text:     #8A8780;
       --rule:          rgba(138, 135, 128, 0.35);  /* body text, faded */
+
+      --font-headline: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+      --font-body:     'Hanken Grotesk', 'Helvetica Neue', Arial, sans-serif;
+      --font-small:    'Share Tech Mono', ui-monospace, 'Courier New', monospace;
     }
 
     html, body {
@@ -49,9 +46,9 @@
       height: 100%;
       overflow: hidden;
       background: var(--ground);
-      font-family: 'Hanken Grotesk', 'Helvetica Neue', Arial, sans-serif;
+      font-family: var(--font-body);
       color: var(--body-text);
-      cursor: none;            /* no mouse pointer on the projection */
+      cursor: none;           /* no mouse pointer on the projection */
     }
 
     /* ── Article layer ─────────────────────────────────────────────────── */
@@ -71,16 +68,17 @@
       will-change: transform;
     }
 
-    /* Typeset edge to edge. Everything is sized from the viewport width, so
-       the layout keeps the same proportions on a laptop and a projector:
-       body text is ~3vw, giving ~65 characters per line across the full
-       width. */
+    /* Typeset edge to edge for a floor-to-ceiling projection. Everything is
+       sized from the viewport width, so the layout keeps the same
+       proportions on a laptop and a projector: body text is ~2.6vw, giving
+       ~75 characters per line across the full width. All other sizes are in
+       em, so changing this one value scales the whole article. */
     .article {
       box-sizing: border-box;
       width: 100%;
       padding: 10vh 4.5vw 22vh;  /* top + bottom = the gap between loops */
-      font-family: 'Hanken Grotesk', 'Helvetica Neue', Arial, sans-serif;
-      font-size: clamp(20px, 3vw, 68px);
+      font-family: var(--font-body);
+      font-size: clamp(18px, 2.6vw, 58px);
       font-weight: 400;
       line-height: 1.38;
       color: var(--body-text);
@@ -90,20 +88,23 @@
     }
 
     .article h1 {
-      font-family: 'Coverage Track', 'Hanken Grotesk', 'Helvetica Neue', Arial, sans-serif;
-      font-size: 2.1em;          /* ~6vw — sized for a long, multi-line headline */
-      font-weight: 400;
-      line-height: 1.04;
-      letter-spacing: -0.015em;
+      font-family: var(--font-headline);
+      font-size: 2.1em;          /* ~5.5vw — sized for a long, multi-line headline */
+      font-weight: 700;
+      line-height: 0.98;
+      letter-spacing: 0;
+      text-transform: uppercase;
       color: var(--headline-text);
       margin: 0 0 0.45em -0.03em;
       text-wrap: balance;
     }
 
     .article h2 {
-      font-size: 0.62em;
-      font-weight: 500;
-      letter-spacing: 0.2em;
+      font-family: var(--font-headline);
+      font-size: 0.95em;
+      font-weight: 600;
+      line-height: 1.1;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--headline-text);
       margin: 2.4em 0 0.9em;
@@ -126,9 +127,10 @@
       text-wrap: pretty;
     }
 
-    /* Byline, reporter note and dates. */
+    /* Byline, reporter note and dates: small credit text, in the mono face. */
     .article .byline {
-      font-size: 0.5em;
+      font-family: var(--font-small);
+      font-size: 0.46em;
       line-height: 1.45;
       color: var(--body-text);
       margin: 0 0 2.4em;
@@ -143,7 +145,7 @@
     }
 
     .article .byline strong {
-      font-weight: 600;
+      font-weight: 400;          /* Share Tech Mono has one weight; colour does the emphasis */
       color: var(--paper-white);
     }
 
@@ -196,6 +198,7 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      font-family: var(--font-small);
       font-size: 0.85rem;
       cursor: auto;
       opacity: 0;              /* invisible on the projection until hovered */
@@ -217,6 +220,7 @@
       border: 1px solid var(--rule);
       border-radius: 4px;
       padding: 0.25rem 0.5rem;
+      font-family: var(--font-small);
       font-size: 0.85rem;
       cursor: pointer;
     }
